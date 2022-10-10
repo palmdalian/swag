@@ -107,12 +107,12 @@ func formatFuncDoc(fileSet *token.FileSet, commentList []*ast.Comment, edits *ed
 	linesToComments := make(map[int]int, len(commentList))
 
 	buffer := &bytes.Buffer{}
-	w := tabwriter.NewWriter(buffer, 0, 0, 1, ' ', 0)
+	w := tabwriter.NewWriter(buffer, 0, 0, 1, ' ', tabwriter.StripEscape)
 
 	for commentIndex, comment := range commentList {
 		text := comment.Text
-		if attr, body, found := swagComment(text); found {
-			formatted := "// " + attr
+		if whitespace, attr, body, found := swagComment(text); found {
+			formatted := "//" + "\xff" + whitespace + "\xff" + attr
 			if body != "" {
 				formatted += "\t" + splitComment2(attr, body)
 			}
@@ -163,12 +163,12 @@ func replaceRange(s string, start, end int, new string) string {
 	return s[:start] + new + s[end:]
 }
 
-var swagCommentLineExpression = regexp.MustCompile(`^\/\/\s+(@[\S.]+)\s*(.*)`)
+var swagCommentLineExpression = regexp.MustCompile(`^\/\/(\s+)(@[\S.]+)\s*(.*)`)
 
-func swagComment(comment string) (string, string, bool) {
+func swagComment(comment string) (string, string, string, bool) {
 	matches := swagCommentLineExpression.FindStringSubmatch(comment)
 	if matches == nil {
-		return "", "", false
+		return "", "", "", false
 	}
-	return matches[1], matches[2], true
+	return matches[1], matches[2], matches[3], true
 }
